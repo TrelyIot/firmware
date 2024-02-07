@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <WiFi.h>
+
 #include "sender.h"
 #include "localwebserver.h"
 #include "store.h"
@@ -7,8 +8,9 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-int PERIOD_CYCLE_SENSORS  = 0.1 * 60 * 1000;
-int PERIOD_CYCLE_DELIVER  = 0.1 * 60 * 1000;
+// EC:62:60:74:03:2C
+int PERIOD_CYCLE_SENSORS  = 1000;
+int PERIOD_CYCLE_DELIVER  = 1000;
 
 SensorData data;
 
@@ -23,13 +25,14 @@ void set_send_timer(int sendT) {
 void sensorTask(void *pvParameters) {
   for (;;) {
     update_sensors_values(sensor_loop_readings());
+    sender_delivery(sensor_loop_readings());
     vTaskDelay(PERIOD_CYCLE_SENSORS / portTICK_PERIOD_MS); // adjust delay as needed
   }
 }
 
 void deliveryTask(void *pvParameters) {
   for (;;) {
-    sender_delivery(data);
+    // sender_delivery(data);
     vTaskDelay(PERIOD_CYCLE_DELIVER / portTICK_PERIOD_MS); // adjust delay as needed
   }
 }

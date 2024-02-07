@@ -1,7 +1,7 @@
 #include <Arduino.h>
 
 volatile unsigned long long PULSE = 0;
-const int debounceDelay = 100; // Adjust this debounce delay according to your needs
+const int debounceDelay = 150; // Adjust this debounce delay according to your needs
 volatile unsigned long lastDebounceTime = 0;
 const gpio_num_t pulsePin = GPIO_NUM_39;
 
@@ -32,6 +32,7 @@ void IRAM_ATTR handlePulse_FM() {
 }
 
 void pulse_begin(bool isPulse) {
-  if(isPulse) attachInterrupt(digitalPinToInterrupt(pulsePin), handlePulse, CHANGE); // This is for GAS
+  touchAttachInterrupt(pulsePin, NULL, 0);
+  if(isPulse) attachInterrupt(digitalPinToInterrupt(pulsePin), handlePulse, RISING); // This is for GAS
   else attachInterrupt(digitalPinToInterrupt(pulsePin), handlePulse_FM, RISING); // this is for FM
 }

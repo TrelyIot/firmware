@@ -32,6 +32,11 @@ void sender_delivery(SensorData data_deliver) {
     myDta._0x64 = data_deliver.thermocouple + 0.000001;
     myDta._0x65 = data_deliver.airflow + 0.000001;
 
-    logStatus(espnowsndr_loop(&myDta)); // Flow and CO2 stack boiler side
-    logStatus(String(status_OnDataSent()));
+    espnowsndr_loop(&myDta);
+    // logStatus(espnowsndr_loop(&myDta)); // Flow and CO2 stack boiler side
+    logStatus("========");
+    logStatus(String(data_deliver.temperature));
+    // (status_OnDataSent() == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+    logStatus(status_OnDataSent() == 0 ? "Delivery Success" : "Delivery Fail"); // 0 - success | 1 - fail
+    // logStatus(String(status_OnDataSent())); // 0 - success | 1 - fail
 }

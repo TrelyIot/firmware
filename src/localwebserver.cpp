@@ -3,6 +3,7 @@
 #include "sensorhandler.h"
 #include "struct_sensors.h"
 #include "store.h"
+#include "statushandler.h"
 
 const char* ssid_default = "Trely";
 char soft_ap_ssid[30];
@@ -35,6 +36,13 @@ void update_sensors_values(SensorData data_sensor_updater) {
     data_sensors.thermocouple = data_sensor_updater.thermocouple;
     data_sensors.airflow = data_sensor_updater.airflow;
     update_data();
+}
+
+String processor_status(const String& var) {
+    if(var == "STATUS_TEXT") {
+        return String(getLogs());
+    }
+    return String();
 }
 
 String processor_setup(const String& var) {
@@ -98,7 +106,7 @@ const char status_html[] PROGMEM = R"rawliteral(
 
             <div>
                 <p>Status</p>
-                <text></text>
+                <label>GPRS Sent Status: <span id="status_text">%STATUS_TEXT%</span></label>
             </div>
 
         </body>
@@ -114,6 +122,11 @@ const char status_html[] PROGMEM = R"rawliteral(
                     if (e.target.readyState != EventSource.OPEN) {
                         console.log("Events Disconnected");
                     }
+                }, false);
+
+                source.addEventListener('status_text', function(e) {
+                    console.log("status_text", e.data);
+                    document.getElementById("status_text").innerHTML = e.data;
                 }, false);
             }
         </script>
@@ -363,6 +376,10 @@ void setLocalNetwork() {
         request->send_P(200, "text/html", setup_html, processor_setup);
     });
 
+    server.on("/status", HTTP_GET, [](AsyncWebServerRequest *request){
+        request->send_P(200, "text/html", status_html, processor_status);
+    });
+
     server.on("/esp_now_mac", HTTP_POST, [](AsyncWebServerRequest *request) {
         int params = request->params();
         for(int i=0; i < params; i++){
@@ -467,8 +484,8 @@ void setLocalNetwork() {
         ESP.restart();
     });
 
-    server.on("/status", HTTP_GET, [](AsyncWebServerRequest *request){
-        request->send_P(200, "text/html", status_html);
+    server.on("/firmware_version", HTTP_POST, [](AsyncWebServerRequest *request) {
+        request->send_P(200, "text/html", "Version 1.0");
     });
 
     // Handle Web Server Events

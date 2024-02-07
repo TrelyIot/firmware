@@ -3,5 +3,5 @@
 
 
 void logStatus(String message, String typeOfInf = "[INFO]");
-
+String getLogs ();
 #endif
