@@ -4,6 +4,7 @@
 #include "struct_sensors.h"
 #include "store.h"
 #include "statushandler.h"
+#include <Update.h>
 
 const char* ssid_default = "Trely";
 char soft_ap_ssid[30];
@@ -99,6 +100,7 @@ const char status_html[] PROGMEM = R"rawliteral(
         <body>
             <div class="topnav">
                 <h1>Trely Device</h1>
+                <a href="/ota">OTA</a>
                 <p><a class="back-link" href="/">Back</a></p>
             </div>
 
@@ -150,6 +152,7 @@ const char setup_html[] PROGMEM = R"rawliteral(
                 <h1>Trely Device</h1>
                 <p><a class="back-link" href="/">Back</a></p>
                 <a href="/status">Status</a>
+                <a href="/ota">OTA</a>
             </div>
             <div>
               <form action="/esp_now_mac" method="POST">
@@ -271,6 +274,7 @@ const char index_html[] PROGMEM = R"rawliteral(
                 <h1>Trely Device</h1>
                 <a href="/setup">Setup</a>
                 <a href="/status">Status</a>
+                <a href="/ota">OTA</a>
             </div>
             <div class="content">
                 <div class="cards">
@@ -356,6 +360,44 @@ const char index_html[] PROGMEM = R"rawliteral(
         </script>
     </html>
 )rawliteral";
+
+
+const char* OTA = 
+"<script src='https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js'></script>"
+"<form method='POST' action='/update' enctype='multipart/form-data' id='upload_form'>"
+   "<input type='file' name='update'>"
+        "<input type='submit' value='Update'>"
+    "</form>"
+ "<div id='prg'>progress: 0%</div>"
+ "<script>"
+  "$('form').submit(function(e){"
+  "e.preventDefault();"
+  "var form = $('#upload_form')[0];"
+  "var data = new FormData(form);"
+  " $.ajax({"
+  "url: '/update',"
+  "type: 'POST',"
+  "data: data,"
+  "contentType: false,"
+  "processData:false,"
+  "xhr: function() {"
+  "var xhr = new window.XMLHttpRequest();"
+  "xhr.upload.addEventListener('progress', function(evt) {"
+  "if (evt.lengthComputable) {"
+  "var per = evt.loaded / evt.total;"
+  "$('#prg').html('progress: ' + Math.round(per*100) + '%');"
+  "}"
+  "}, false);"
+  "return xhr;"
+  "},"
+  "success:function(d, s) {"
+  "console.log('success!')" 
+ "},"
+ "error: function (a, b, c) {"
+ "}"
+ "});"
+ "});"
+ "</script>";
 
 void setLocalNetwork() {
     String macAddress = WiFi.macAddress();
@@ -487,6 +529,38 @@ void setLocalNetwork() {
     server.on("/firmware_version", HTTP_POST, [](AsyncWebServerRequest *request) {
         request->send_P(200, "text/html", "Version 1.0");
     });
+
+    server.on("/ota", HTTP_GET, [](AsyncWebServerRequest *request){
+        request->send_P(200, "text/html", OTA);
+    });
+
+    // Route to upload firmware
+    server.on("/update", HTTP_POST, [](AsyncWebServerRequest *request) {
+        AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", (Update.hasError()) ? "Update failed" : "Update success");
+        response->addHeader("Connection", "close");
+        request->send(response);
+    }, [](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
+        if (!index) {
+            Serial.printf("Update: %s\n", filename.c_str());
+            if (!Update.begin()) {
+                Update.printError(Serial);
+            }
+        }
+        if (!Update.hasError()) {
+            if (Update.write(data, len) != len) {
+                Update.printError(Serial);
+            }
+        }
+        if (final) {
+            if (Update.end(true)) {
+                Serial.println("Update success");
+                ESP.restart();
+            } else {
+                Update.printError(Serial);
+            }
+        }
+    });
+
 
     // Handle Web Server Events
     events.onConnect([](AsyncEventSourceClient *client){

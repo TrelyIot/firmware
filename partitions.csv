@@ -1,0 +1,7 @@
+# Name,   Type, SubType, Offset,  Size, Flags
+nvs,      data, nvs,     0x9000,  0x6000,
+otadata,  data, ota,     0xf000,  0x2000,
+app0,     app,  ota_0,   0x10000, 0x3E000,
+app1,     app,  ota_1,   0x4E000, 0x3E000,
+eeprom,   data, 0x99,    0x8C000,  0x1000,
+coredump, data, 0x99,    0x8D000,  0x1000,
